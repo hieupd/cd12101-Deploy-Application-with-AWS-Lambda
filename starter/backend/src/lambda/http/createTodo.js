@@ -1,9 +1,7 @@
 // Import necessary modules and functions
-import { createTodo } from '../../dataLayer/todosAccess.mjs'; // Function to add a new todo to the data layer
-import { getUserId } from '../ultilities.mjs'; // Utilities for user ID and API responses
 import { requestSuccessMetric, requestLatencyMetric } from '../../utils/cloudWatchMetric.mjs'; // CloudWatch metrics
-import { v4 } from 'uuid'; // UUID generator for unique item IDs
 import { createLogger } from '../../utils/logger.mjs'; // Logger for debugging and auditing
+import { createTodoBUL } from '../../bussinessLogic/todos.mjs';
 
 // Set up logging
 const logger = createLogger('createTodo'); // Create a logger instance with a function identifier
@@ -14,29 +12,10 @@ export async function handler(event) {
     const startTime = Date.now(); // Record the start time for latency calculation
 
     try {
-        // Generate a unique ID for the new todo item
-        const itemId = v4(); 
-        // Retrieve user ID from the event object
-        const userId = getUserId(event);
-        // Parse the new todo data from the request body
-        const newTodo = JSON.parse(event.body);
-
-        // Create the new todo item object
-        const newTodoItem = {
-            todoId: itemId,
-            userId,
-            createdAt: new Date().toISOString(), // Timestamp for when the todo is created
-            attachmentUrl: '', // Placeholder for attachments
-            done: false, // Default status of the todo
-            ...newTodo // Merge additional properties from the input
-        };
-
         // Log the creation of the new todo item
-        logger.info('Creating new Todo.', { newTodoItem });
-
-        // Save the new todo item to the database
-        await createTodo(newTodoItem);
-        
+        logger.info('Creating new Todo');
+        const resultTodoItem = await createTodoBUL(event);
+        logger.info('Created new Todo.', { resultTodoItem });
         // Log metrics for the request
         await requestLatencyMetric('createTodo', Date.now() - startTime);
         await requestSuccessMetric('createTodo', 1); // Log success metric
@@ -47,7 +26,7 @@ export async function handler(event) {
           headers: {
             'Access-Control-Allow-Origin': '*'
           },
-          body: JSON.stringify({ item: newTodoItem })
+          body: JSON.stringify({ item: resultTodoItem })
         }
         return resData
 

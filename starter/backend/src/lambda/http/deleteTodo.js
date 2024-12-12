@@ -1,8 +1,9 @@
 // Import necessary modules and functions
-import { getTodoById, deleteTodo } from '../../dataLayer/todosAccess.mjs'; // Functions to retrieve and delete a todo
+import { getTodoById } from '../../dataLayer/todosAccess.mjs'; // Functions to retrieve and delete a todo
 import { getUserId } from '../ultilities.mjs'; // Utilities for user ID and API responses
 import { requestSuccessMetric, requestLatencyMetric } from '../../utils/cloudWatchMetric.mjs'; // CloudWatch metrics
 import { createLogger } from '../../utils/logger.mjs'; // Logger for debugging and tracking
+import { deleteTodoBUL } from '../../bussinessLogic/todos.mjs';
 
 // Set up logging
 const logger = createLogger('deleteTodo'); // Create a logger instance with a specific tag
@@ -31,7 +32,7 @@ export async function handler(event) {
         }
 
         // Proceed to delete the todo item
-        await deleteTodo({ todoId, userId });
+        await deleteTodoBUL(event);
 
         // Record metrics and return a successful response
         await requestLatencyMetric('deleteTodo', Date.now() - startTime);

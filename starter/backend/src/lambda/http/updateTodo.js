@@ -1,8 +1,9 @@
 // Import necessary modules and functions
-import { getTodoById, updateTodo } from '../../dataLayer/todosAccess.mjs'; // Functions to interact with todo items
+import { getTodoById } from '../../dataLayer/todosAccess.mjs'; // Functions to interact with todo items
 import { getUserId } from '../ultilities.mjs'; // Utilities for user handling and responses
 import { requestSuccessMetric, requestLatencyMetric } from '../../utils/cloudWatchMetric.mjs'; // CloudWatch metrics
 import { createLogger } from '../../utils/logger.mjs'; // Logger utility for logging events
+import { updateTodoBUL } from '../../bussinessLogic/todos.mjs';
 
 const fTAG = 'updateTodo'; 
 const logger = createLogger(fTAG); // Logger instance specific to the updateTodo function
@@ -34,7 +35,7 @@ export async function handler(event) {
         }
 
         // Update todo item with the new data
-        await updateTodo({ todoId, userId }, updatedTodo);
+        await updateTodoBUL(event);
 
         // Record metrics for performance monitoring
         await requestLatencyMetric(fTAG, Date.now() - startTime);

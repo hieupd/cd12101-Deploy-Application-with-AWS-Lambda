@@ -1,9 +1,9 @@
 // Import necessary modules and functions
-import { getTodoById, updateTodo } from '../../dataLayer/todosAccess.mjs'; // Functions to retrieve and update todo items
-import { getUploadUrl, buildS3Url } from '../../fileStorage/attachmentUtils.mjs'; // Functions for managing file uploads in S3
+import { getTodoById } from '../../dataLayer/todosAccess.mjs'; // Functions to retrieve and update todo items
 import { getUserId } from '../ultilities.mjs'; // Utilities for handling user sessions and API responses
 import { requestSuccessMetric, requestLatencyMetric } from '../../utils/cloudWatchMetric.mjs'; // CloudWatch metrics for monitoring performance
 import { createLogger } from '../../utils/logger.mjs'; // Logger to track events
+import { generateUploadUrlBUL } from '../../bussinessLogic/todos.mjs';
 
 // Set up logging with a unique function tag
 const logger = createLogger('generateUploadUrl');
@@ -31,13 +31,7 @@ export async function handler(event) {
           return resData
         }
 
-        // Generate the upload URL for the todo item
-        const uploadImageUrl = await getUploadUrl(todoId);
-        logger.info('Upload URL generated.', { uploadUrl: uploadImageUrl });
-
-        // Build S3 URL for storing attachments and update the todo item
-        const attachmentUrl = buildS3Url(todoId);
-        await updateTodo({ todoId, userId }, { attachmentUrl });
+        const uploadImageUrl = await generateUploadUrlBUL(event);
 
         // Log metrics for the request
         await requestLatencyMetric('generateUploadUrl', Date.now() - startTime);
