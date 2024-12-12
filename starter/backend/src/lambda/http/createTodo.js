@@ -1,6 +1,6 @@
 // Import necessary modules and functions
 import { createTodo } from '../../dataLayer/todosAccess.mjs'; // Function to add a new todo to the data layer
-import { getUserId, apiResponseSucess, apiResponseError } from '../utils.mjs'; // Utilities for user ID and API responses
+import { getUserId } from '../ultilities.mjs'; // Utilities for user ID and API responses
 import { requestSuccessMetric, requestLatencyMetric } from '../../utils/cloudWatchMetric.mjs'; // CloudWatch metrics
 import { v4 } from 'uuid'; // UUID generator for unique item IDs
 import { createLogger } from '../../utils/logger.mjs'; // Logger for debugging and auditing
@@ -10,6 +10,7 @@ const logger = createLogger('createTodo'); // Create a logger instance with a fu
 
 // Main handler function for creating a todo
 export async function handler(event) {
+    let resData
     const startTime = Date.now(); // Record the start time for latency calculation
 
     try {
@@ -21,7 +22,7 @@ export async function handler(event) {
         const newTodo = JSON.parse(event.body);
 
         // Create the new todo item object
-        const newItem = {
+        const newTodoItem = {
             todoId: itemId,
             userId,
             createdAt: new Date().toISOString(), // Timestamp for when the todo is created
@@ -31,17 +32,24 @@ export async function handler(event) {
         };
 
         // Log the creation of the new todo item
-        logger.info('Creating new Todo.', { newItem });
+        logger.info('Creating new Todo.', { newTodoItem });
 
         // Save the new todo item to the database
-        await createTodo(newItem);
+        await createTodo(newTodoItem);
         
         // Log metrics for the request
         await requestLatencyMetric('createTodo', Date.now() - startTime);
         await requestSuccessMetric('createTodo', 1); // Log success metric
         
         // Return a successful response with the new item
-        return apiResponseSucess(200, { item: newItem });
+        resData = {
+          statusCode: 200,
+          headers: {
+            'Access-Control-Allow-Origin': '*'
+          },
+          body: JSON.stringify({ item: newTodoItem })
+        }
+        return resData
 
     } catch (error) {
         // Handle errors
@@ -51,8 +59,15 @@ export async function handler(event) {
         await requestSuccessMetric('createTodo', 0); 
 
         // Return error response
-        return apiResponseError(500, {
+        resData = {
+          statusCode: 500,
+          headers: {
+            'Access-Control-Allow-Origin': '*'
+          },
+          body: JSON.stringify({
             error: error.message || 'Internal server error'
-        });
+          })
+        }
+        return resData
     }
 }

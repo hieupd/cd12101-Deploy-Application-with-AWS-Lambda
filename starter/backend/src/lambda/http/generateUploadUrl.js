@@ -1,7 +1,7 @@
 // Import necessary modules and functions
 import { getTodoById, updateTodo } from '../../dataLayer/todosAccess.mjs'; // Functions to retrieve and update todo items
 import { getUploadUrl, buildS3Url } from '../../fileStorage/attachmentUtils.mjs'; // Functions for managing file uploads in S3
-import { getUserId, apiResponseSucess, apiResponseError } from '../utils.mjs'; // Utilities for handling user sessions and API responses
+import { getUserId } from '../ultilities.mjs'; // Utilities for handling user sessions and API responses
 import { requestSuccessMetric, requestLatencyMetric } from '../../utils/cloudWatchMetric.mjs'; // CloudWatch metrics for monitoring performance
 import { createLogger } from '../../utils/logger.mjs'; // Logger to track events
 
@@ -10,6 +10,7 @@ const logger = createLogger('generateUploadUrl');
 
 // Main handler function for generating an upload URL for a todo item
 export async function handler(event) {
+    let resData
     const startTime = Date.now(); // Record start time for measuring latency
     const userId = getUserId(event); // Retrieve user ID from the event
     const todoId = event.pathParameters.todoId; // Extract todoId from path parameters
@@ -20,12 +21,19 @@ export async function handler(event) {
         // Fetch and validate the specified todo item
         const todoInfo = await getTodoById(userId, todoId);
         if (!todoInfo) {
-            return apiResponseError(404, { error: 'Todo does not exist' }); // Return 404 if todo not found
+          resData = {
+            statusCode: 404,
+            headers: {
+              'Access-Control-Allow-Origin': '*'
+            },
+            body: JSON.stringify({ error: 'Todo does not exist' })
+          }
+          return resData
         }
 
         // Generate the upload URL for the todo item
-        const uploadUrl = await getUploadUrl(todoId);
-        logger.info('Upload URL generated.', { uploadUrl });
+        const uploadImageUrl = await getUploadUrl(todoId);
+        logger.info('Upload URL generated.', { uploadUrl: uploadImageUrl });
 
         // Build S3 URL for storing attachments and update the todo item
         const attachmentUrl = buildS3Url(todoId);
@@ -36,14 +44,28 @@ export async function handler(event) {
         await requestSuccessMetric('generateUploadUrl', 1);
 
         // Return a successful response containing the generated upload URL
-        return apiResponseSucess(200, { uploadUrl });
+        resData = {
+          statusCode: 200,
+          headers: {
+            'Access-Control-Allow-Origin': '*'
+          },
+          body: JSON.stringify({ uploadUrl: uploadImageUrl })
+        }
+        return resData
 
     } catch (error) {
         // Log and return error response
         logger.error('Error generating upload URL:', { message: error.message, error });
         await requestSuccessMetric('generateUploadUrl', 0); // Log failure metric
-        return apiResponseError(500, {
+        resData = {
+          statusCode: 500,
+          headers: {
+            'Access-Control-Allow-Origin': '*'
+          },
+          body: JSON.stringify({
             error: error.message || 'Internal server error'
-        });
+          })
+        }
+        return resData;
     }
 }
