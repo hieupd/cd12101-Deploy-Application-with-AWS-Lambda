@@ -4,6 +4,9 @@ import { useParams } from 'react-router-dom'
 import { Button, Form } from 'semantic-ui-react'
 import { getUploadUrl, uploadFile } from '../api/todos-api'
 
+//Config domain auth0 server
+const domain = process.env.REACT_APP_AUTH0_DOMAIN
+
 const UploadState = {
   NoUpload: 'NoUpload',
   FetchingPresignedUrl: 'FetchingPresignedUrl',
@@ -43,7 +46,7 @@ export function EditTodo() {
 
       setUploadState(UploadState.FetchingPresignedUrl)
       const accessToken = await getAccessTokenSilently({
-        audience: `https://test-endpoint.auth0.com/api/v2/`,
+        audience: `https://${domain}/api/v2/`,
         scope: 'write:todos'
       })
       const uploadUrl = await getUploadUrl(accessToken, todoId)
