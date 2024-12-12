@@ -1,6 +1,5 @@
-# "org" ensures this Service is used with the correct Serverless Framework Access Key.
+# Serverless Framework configuration for the serverless-todo-app
 org: hieupd
-# "app" enables Serverless Framework Dashboard features and sharing them with other Services.
 app: todoapp
 service: serverless-todo-app
 
@@ -10,10 +9,12 @@ plugins:
 provider:
   name: aws
   runtime: nodejs20.x
-  # X-ray
+
+  # Enable tracing for API Gateway and Lambda
   tracing:
     apiGateway: true
     lambda: true
+
   stage: ${opt:stage, 'dev'}
   region: ${opt:region, 'us-east-1'}
 
@@ -29,8 +30,8 @@ provider:
         - Effect: Allow
           Action: 'cloudwatch:PutMetricData'
           Resource: '*'
-functions:
 
+functions:
   Auth:
     handler: src/lambda/auth/auth0Authorizer.handler
 
@@ -47,7 +48,9 @@ functions:
       - Effect: Allow
         Action:
           - dynamodb:Query
-        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODO_TABLE}/index/${self:provider.environment.USER_ID_INDEX}
+        Resource: 
+          !Sub arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODO_TABLE}/index/${self:provider.environment.USER_ID_INDEX}
+
   CreateTodo:
     handler: src/lambda/http/createTodo.handler
     events:
@@ -64,7 +67,8 @@ functions:
       - Effect: Allow
         Action:
           - dynamodb:PutItem
-        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODO_TABLE}
+        Resource: !Sub arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODO_TABLE}
+
   UpdateTodo:
     handler: src/lambda/http/updateTodo.handler
     events:
@@ -82,7 +86,8 @@ functions:
         Action:
           - dynamodb:GetItem
           - dynamodb:UpdateItem
-        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODO_TABLE}
+        Resource: !Sub arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODO_TABLE}
+
   DeleteTodo:
     handler: src/lambda/http/deleteTodo.handler
     events:
@@ -97,7 +102,8 @@ functions:
         Action:
           - dynamodb:GetItem
           - dynamodb:DeleteItem
-        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODO_TABLE}
+        Resource: !Sub arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODO_TABLE}
+
   GenerateUploadUrl:
     handler: src/lambda/http/generateUploadUrl.handler
     events:
@@ -117,7 +123,8 @@ functions:
         Action:
           - dynamodb:GetItem
           - dynamodb:UpdateItem
-        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODO_TABLE}
+        Resource: !Sub arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODO_TABLE}
+
 resources:
   Resources:
     TodosDynamoDBTable:
@@ -146,6 +153,7 @@ resources:
                 KeyType: RANGE
             Projection:
               ProjectionType: ALL
+
     ImagesBucket:
       Type: AWS::S3::Bucket
       Properties:
@@ -155,8 +163,7 @@ resources:
           RestrictPublicBuckets: false
         CorsConfiguration:
           CorsRules:
-            -
-              AllowedOrigins:
+            - AllowedOrigins:
                 - '*'
               AllowedHeaders:
                 - '*'
@@ -179,5 +186,5 @@ resources:
               Effect: Allow
               Principal: '*'
               Action: 's3:GetObject'
-              Resource: 'arn:aws:s3:::${self:provider.environment.IMAGES_S3_BUCKET}/*'
+              Resource: !Sub 'arn:aws:s3:::${self:provider.environment.IMAGES_S3_BUCKET}/*'
         Bucket: !Ref ImagesBucket

@@ -1,37 +1,58 @@
-import { createTodo } from '../../dataLayer/todosAccess.mjs'
-import { getUserId, apiResponseSucess, apiResponseError } from '../utils.mjs'
-import { requestSuccessMetric, requestLatencyMetric } from '../../utils/cloudWatchMetric.mjs'
-import { v4 } from 'uuid'
-import { createLogger } from '../../utils/logger.mjs'
+// Import necessary modules and functions
+import { createTodo } from '../../dataLayer/todosAccess.mjs'; // Function to add a new todo to the data layer
+import { getUserId, apiResponseSucess, apiResponseError } from '../utils.mjs'; // Utilities for user ID and API responses
+import { requestSuccessMetric, requestLatencyMetric } from '../../utils/cloudWatchMetric.mjs'; // CloudWatch metrics
+import { v4 } from 'uuid'; // UUID generator for unique item IDs
+import { createLogger } from '../../utils/logger.mjs'; // Logger for debugging and auditing
 
-const fTAG = 'createTodo'
-const logger = createLogger(fTAG)
+// Set up logging
+const logger = createLogger('createTodo'); // Create a logger instance with a function identifier
+
+// Main handler function for creating a todo
 export async function handler(event) {
-  const startTime = Date.now()
-  let resCode = 500
-  try {
-    const userId = getUserId(event)
-    const newTodo = JSON.parse(event.body)
-    const itemId = v4()
-    const newItem = {
-      todoId: itemId,
-      userId,
-      createdAt: new Date().toISOString(),
-      attachmentUrl: '',
-      done: false,
-      ...newTodo
-    }
-    logger.info('Handling create new Todo.', { newItem })
-    await createTodo(newItem)
-    await requestLatencyMetric(fTAG, Date.now() - startTime)
-    await requestSuccessMetric(fTAG, 1)
-    return apiResponseSucess(200, { item: newItem })
-  } catch (error) {
-    logger.error(error.message, error)
-    await requestSuccessMetric(fTAG, 0)
-    return apiResponseError(resCode, {
-      error: error.message || 'Internal server error'
-    })
-  }
-}
+    const startTime = Date.now(); // Record the start time for latency calculation
 
+    try {
+        // Generate a unique ID for the new todo item
+        const itemId = v4(); 
+        // Retrieve user ID from the event object
+        const userId = getUserId(event);
+        // Parse the new todo data from the request body
+        const newTodo = JSON.parse(event.body);
+
+        // Create the new todo item object
+        const newItem = {
+            todoId: itemId,
+            userId,
+            createdAt: new Date().toISOString(), // Timestamp for when the todo is created
+            attachmentUrl: '', // Placeholder for attachments
+            done: false, // Default status of the todo
+            ...newTodo // Merge additional properties from the input
+        };
+
+        // Log the creation of the new todo item
+        logger.info('Creating new Todo.', { newItem });
+
+        // Save the new todo item to the database
+        await createTodo(newItem);
+        
+        // Log metrics for the request
+        await requestLatencyMetric('createTodo', Date.now() - startTime);
+        await requestSuccessMetric('createTodo', 1); // Log success metric
+        
+        // Return a successful response with the new item
+        return apiResponseSucess(200, { item: newItem });
+
+    } catch (error) {
+        // Handle errors
+        logger.error('Error creating Todo:', { message: error.message, error });
+
+        // Log failure metric
+        await requestSuccessMetric('createTodo', 0); 
+
+        // Return error response
+        return apiResponseError(500, {
+            error: error.message || 'Internal server error'
+        });
+    }
+}
