@@ -90,7 +90,7 @@ export async function updateTodo(keyObj, updateData = {}) {
         const expressionAttributeNames = {}; // This will hold the reserved keyword replacements
 
         // Reserved keywords in DynamoDB
-        const reservedKeywords = ['name', 'done', 'dueDate'];
+        const reservedKeywords = ['name', 'done', 'dueDate', 'attachmentUrl'];
 
         // Loop through the updateData keys
         for (const key of Object.keys(updateData)) {
@@ -98,6 +98,8 @@ export async function updateTodo(keyObj, updateData = {}) {
             const attributeName = reservedKeywords.includes(key) ? `#${key}` : key; 
             if (reservedKeywords.includes(key)) {
                 expressionAttributeNames[`#${key}`] = key; // map the placeholder to the actual name
+            } else {
+                expressionAttributeNames[`${key}`] = key;
             }
 
             // Add to the update expression
