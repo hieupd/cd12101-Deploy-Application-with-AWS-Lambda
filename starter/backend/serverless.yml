@@ -24,13 +24,6 @@ provider:
     IMAGES_S3_BUCKET: todo-images-${self:provider.stage}
     SIGNED_URL_EXPIRATION: 300
 
-  iam:
-    role:
-      statements:
-        - Effect: Allow
-          Action: 'cloudwatch:PutMetricData'
-          Resource: '*'
-
 functions:
   Auth:
     handler: src/lambda/auth/auth0Authorizer.handler
@@ -45,6 +38,9 @@ functions:
           cors: true
     iamRoleStatementsInherit: true
     iamRoleStatements:
+      - Effect: Allow
+        Action: 'cloudwatch:PutMetricData'
+        Resource: '*'
       - Effect: Allow
         Action:
           - dynamodb:Query
@@ -65,6 +61,9 @@ functions:
     iamRoleStatementsInherit: true
     iamRoleStatements:
       - Effect: Allow
+        Action: 'cloudwatch:PutMetricData'
+        Resource: '*'
+      - Effect: Allow
         Action:
           - dynamodb:PutItem
         Resource: !Sub arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODO_TABLE}
@@ -83,6 +82,9 @@ functions:
     iamRoleStatementsInherit: true
     iamRoleStatements:
       - Effect: Allow
+        Action: 'cloudwatch:PutMetricData'
+        Resource: '*'
+      - Effect: Allow
         Action:
           - dynamodb:GetItem
           - dynamodb:UpdateItem
@@ -99,6 +101,9 @@ functions:
     iamRoleStatementsInherit: true
     iamRoleStatements:
       - Effect: Allow
+        Action: 'cloudwatch:PutMetricData'
+        Resource: '*'
+      - Effect: Allow
         Action:
           - dynamodb:GetItem
           - dynamodb:DeleteItem
@@ -114,6 +119,9 @@ functions:
           cors: true
     iamRoleStatementsInherit: true
     iamRoleStatements:
+      - Effect: Allow
+        Action: 'cloudwatch:PutMetricData'
+        Resource: '*'
       - Effect: Allow
         Action:
           - s3:PutObject

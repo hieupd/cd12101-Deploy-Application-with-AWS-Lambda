@@ -74,7 +74,7 @@ export async function getTodosByUserId(userId) {
  * @param {Object} updateData - The new data to update the todo item with.
  * @returns {Promise<boolean>} - True if the update was successful, otherwise false.
  */
-export async function updateTodo(keyObj, updateData) {
+export async function updateTodo(keyObj, updateData = {}) {
     const segment = AWSXRay.getSegment();
     const subsegment = segment.addNewSubsegment('updateTodo');
 
@@ -84,22 +84,37 @@ export async function updateTodo(keyObj, updateData) {
             return false; // Exit if there's no data to update.
         }
 
-        // Build update expression and attribute values for the update operation.
+        // Prepare expression attribute names and values
         const updateExpression = [];
         const expressionAttributeValues = {};
+        const expressionAttributeNames = {}; // This will hold the reserved keyword replacements
 
+        // Reserved keywords in DynamoDB
+        const reservedKeywords = ['name', 'done', 'dueDate'];
+
+        // Loop through the updateData keys
         for (const key of Object.keys(updateData)) {
-            updateExpression.push(`${key} = :${key}`);
+            // Use a placeholder for reserved words
+            const attributeName = reservedKeywords.includes(key) ? `#${key}` : key; 
+            if (reservedKeywords.includes(key)) {
+                expressionAttributeNames[`#${key}`] = key; // map the placeholder to the actual name
+            }
+
+            // Add to the update expression
+            updateExpression.push(`${attributeName} = :${key}`);
             expressionAttributeValues[`:${key}`] = updateData[key];
         }
 
+        // Construct the parameters for the update operation.
         const params = {
             TableName: TODO_TABLE,
             Key: keyObj,
             UpdateExpression: `SET ${updateExpression.join(', ')}`,
             ExpressionAttributeValues: expressionAttributeValues,
+            ExpressionAttributeNames: expressionAttributeNames, // Add this line
         };
 
+        // Execute the update
         await dynamoDbClient.update(params);
         subsegment.addAnnotation('status', 'success');
         return true; // Indicate successful update
